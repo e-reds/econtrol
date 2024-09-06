@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area"; // Importar ScrollArea de shadcn/ui
-import { Check, IconSquareLetterX, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 interface ClientlistProps {
   clientId: string;
