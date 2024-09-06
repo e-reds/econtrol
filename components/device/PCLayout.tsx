@@ -25,7 +25,7 @@ const PCLayout: React.FC<PCLayoutProps> = ({ pcs, onPcSelect, onUpdatePCPosition
   const [scale, setScale] = useState(1);
   const [dragEnabled, setDragEnabled] = useState(false); // Estado para habilitar/deshabilitar el arrastre
   const containerRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
+
 
   const GRID_SIZE = 100; // Tamaño de la cuadrícula virtual
 

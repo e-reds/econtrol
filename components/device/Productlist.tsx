@@ -25,7 +25,8 @@ export function Productlist({ sessionId, group, onProductAdded }: ProductlistPro
   }, [group]);
 
   const fetchProducts = async () => {
-    const { data, error } = await supabase
+    try {
+       const { data, error } = await supabase
       .from("products")
       .select("*")
       .or(`group.eq.${group},group.eq.1`);
@@ -35,13 +36,17 @@ export function Productlist({ sessionId, group, onProductAdded }: ProductlistPro
       setProducts(data || []);
       setFilteredProducts(data || []);
     }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
+   
   };
 
   const addProductToSession = async (productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (!product) return;
-
-    const { error } = await supabase.from("consumptions").insert({
+try {
+  const { error } = await supabase.from("consumptions").insert({
       session_id: sessionId,
       product_name: product.name,
       quantity: 1,
@@ -53,6 +58,10 @@ export function Productlist({ sessionId, group, onProductAdded }: ProductlistPro
     } else {
       onProductAdded();
     }
+} catch (error) {
+  console.error("Error adding product to session:", error);
+}
+    
   };
 
   const handleSearch = React.useCallback(

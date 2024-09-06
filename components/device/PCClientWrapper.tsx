@@ -21,16 +21,22 @@ const PCClientWrapper: React.FC = () => {
     fetchPCs(); // Cargar todas las PCs al cargar el componente
   }, []);
   const fetchPCs = async () => {
-    const { data, error } = await supabase.from('pcs').select('*');
+    try {
+       const { data, error } = await supabase.from('pcs').select('*');
     if (error) {
       console.error('Error fetching PCs:', error);
     } else {
       setPcs(data || []);
     }
+    } catch (error) {
+      console.error('Error fetching PCs:', error);
+    }
+   
   };
    // Función para actualizar el estado de una PC desde PCDetail
    const handleUpdatePCStatus = async (pcId: string, status: string) => {
-    const { data, error } = await supabase
+    try {
+      const { data, error } = await supabase
       .from('pcs')
       .update({ status })
       .eq('id', pcId)
@@ -48,7 +54,11 @@ const PCClientWrapper: React.FC = () => {
     if (status === 'available') {
       setUpdateSessions((prev) => !prev);  // Forzar la actualización de las sesiones en SessionList
     }
+    } 
+    } catch (error) {
+      console.error('Error updating PC status:', error);
     }
+   
   };
   const handlePcSelect = (pc: PC) => {
     setSelectedPC(pc);
@@ -56,7 +66,8 @@ const PCClientWrapper: React.FC = () => {
   };
    // Función para actualizar la posición de una PC desde PCLayout
    const handleUpdatePCPosition = async (pcId: string, newPosition: { x: number, y: number }) => {
-    const { data, error } = await supabase
+    try {
+      const { data, error } = await supabase
       .from('pcs')
       .update({ position: newPosition })
       .eq('id', pcId)
@@ -69,7 +80,11 @@ const PCClientWrapper: React.FC = () => {
         pc.id === pcId ? { ...pc, position: newPosition } : pc
       );
       setPcs(updatedPCs); // Actualiza el estado global con la nueva posición     
+    } 
+    } catch (error) {
+      console.error('Error updating PC position:', error);
     }
+   
   };
 
   return (

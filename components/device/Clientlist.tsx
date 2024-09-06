@@ -28,13 +28,18 @@ export function Clientlist({ clientId, setClientId }: ClientlistProps) {
   }, []);
 
   const fetchClients = async () => {
-    const { data, error } = await supabase.from("clients").select("*");
+    try {
+      const { data, error } = await supabase.from("clients").select("*");
     if (error) console.error("Error fetching clients:", error);
     else {
       setClients(data || []);
       setFilteredClients(data || []);
       console.log('data clients', data);
+    } 
+    } catch (error) {
+      console.error("Error fetching clients:", error);
     }
+   
   };
 
   const handleSearch = (query: string) => {

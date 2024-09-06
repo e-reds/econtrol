@@ -64,8 +64,8 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
   }, [consumptions]);
 
   const fetchCurrentSession = async (pcId: string) => {
-    console.log(pcId);
-    const { data, error } = await supabase
+   try {
+     const { data, error } = await supabase
       .from('sessions')
       .select('*')
       .eq('pc_id', pcId)
@@ -83,11 +83,15 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
         setConsumptions([]);
       }
     }
+   } catch (error) {
+     console.error('Error fetching current session:', error);
+   }
+   
   };
 
   const fetchConsumptions = async (sessionId: string) => {
-    console.log(sessionId);
-    const { data, error } = await supabase
+    try {
+       const { data, error } = await supabase
       .from('consumptions')
       .select('*')
       .eq('session_id', sessionId);
@@ -98,18 +102,27 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
       console.log(data);
       setConsumptions(data || []);
     }
+    } catch (error) {
+      console.error('Error fetching consumptions:', error);
+    }
+   
   };
 
   const fetchClients = async () => {
-    const { data, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
+    try {
+       const { data, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
     if (error) console.error('Error fetching clients:', error);
     else setCurrentClient(data);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+    }
+   
   };
 
   const handleOpenSession = async () => {
     if (!selectedPC || !clientId) return;
-
-    const { data, error } = await supabase
+try {
+  const { data, error } = await supabase
       .from('sessions')
       .insert({
         client_id: clientId,
@@ -130,18 +143,27 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
       alert(`Session opened for client ${clientId} on PC ${selectedPC.number}`);
       fetchConsumptions(data.id);
     }
+} catch (error) {
+  console.error('Error opening session:', error);
+}
+    
   };
   const handleUpdatePCStatus = async (status: string) => {
-    const { data, error } = await supabase
+    try {
+      const { data, error } = await supabase
       .from('pcs')
       .update({ status: status })
       .eq('id', selectedPC?.id)
       .select()
+    } catch (error) {
+      console.error('Error updating PC status:', error);
+    }
+    
   }
   const handleCloseSession = async () => {
     if (!selectedPC || !currentSession) return;
-
-    const { error } = await supabase
+try {
+   const { error } = await supabase
       .from('sessions')
       .update({
         end_time: new Date().toISOString(),
@@ -159,10 +181,15 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
       setConsumptions([]);
       alert(`Session closed for client ${currentSession.client_id} on PC ${selectedPC.number}`);
     }
+} catch (error) {
+  console.error('Error closing session:', error);
+}
+   
   };
 
   const handleRemoveConsumption = async (consumptionId: string) => {
-    const { error } = await supabase
+    try {
+      const { error } = await supabase
       .from('consumptions')
       .delete()
       .eq('id', consumptionId);
@@ -172,10 +199,15 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
     } else {
       setConsumptions(consumptions.filter(c => c.id !== consumptionId));
     }
+    } catch (error) {
+      console.error('Error removing consumption:', error);
+    }
+    
   };
 
   const handleUpdateQuantity = async (consumptionId: string, newQuantity: number) => {
-    const { error } = await supabase
+    try {
+       const { error } = await supabase
       .from('consumptions')
       .update({ quantity: newQuantity })
       .eq('id', consumptionId);
@@ -185,6 +217,10 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
     } else {
       setConsumptions(consumptions.map(c => c.id === consumptionId ? { ...c, quantity: newQuantity } : c));
     }
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+    }
+   
   };
 
   const calculateTotalAmount = () => {

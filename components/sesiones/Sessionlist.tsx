@@ -47,7 +47,8 @@ const SessionList: React.FC<SessionListProps> = ({ selectedPC, updateSessions })
   }, [selectedPC, startDate, endDate, updateSessions]); // Agregar updateSessions como dependencia
 
   const fetchSessions = async () => {
-    const { data: sessionsData, error: sessionsError } = await supabase
+    try {
+        const { data: sessionsData, error: sessionsError } = await supabase
       .from("sessions")
       .select("*, clients(name)")
       .eq("pc_number", selectedPC)
@@ -68,10 +69,15 @@ const SessionList: React.FC<SessionListProps> = ({ selectedPC, updateSessions })
         fetchConsumptions(session.id);
       });
     }
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+    }
+  
   };
 
   const fetchConsumptions = async (sessionId: string) => {
-    const { data: consumptionsData, error: consumptionsError } = await supabase
+    try {
+       const { data: consumptionsData, error: consumptionsError } = await supabase
       .from("consumptions")
       .select("*")
       .eq("session_id", sessionId);
@@ -84,6 +90,10 @@ const SessionList: React.FC<SessionListProps> = ({ selectedPC, updateSessions })
         [sessionId]: consumptionsData,
       }));
     }
+    } catch (error) {
+      console.error("Error fetching consumptions:", error);
+    }
+   
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, type: "start" | "end") => {
