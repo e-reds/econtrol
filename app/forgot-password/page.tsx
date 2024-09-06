@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Header from '@/components/Header/Header';
+import { IconArrowBack } from '@tabler/icons-react';
 
 export default async function ForgotPassword({
   searchParams,
@@ -45,9 +46,9 @@ export default async function ForgotPassword({
 
       <Link
         href="/"
-        className="py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover text-sm m-4"
-      >
-        Home
+        className="py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover text-sm m-4 flex gap-2 items-center max-w-fit"
+        >
+          <IconArrowBack /> Atras
       </Link>
 
       <div className="w-full px-8 sm:max-w-md mx-auto mt-4">
@@ -56,7 +57,7 @@ export default async function ForgotPassword({
           action={confirmReset}
         >
           <label className="text-md" htmlFor="email">
-            Enter Email Address
+            Ingresar su correo
           </label>
           <input
             className="rounded-md px-4 py-2 bg-inherit border mb-6"
@@ -66,7 +67,7 @@ export default async function ForgotPassword({
           />
 
           <button className="bg-indigo-700 rounded-md px-4 py-2 text-foreground mb-2">
-            Confirm
+            Confirmar
           </button>
 
           {searchParams?.message && (
@@ -80,7 +81,7 @@ export default async function ForgotPassword({
           href="/login"
           className="rounded-md no-underline text-foreground text-sm"
         >
-          Remember your password? Sign in
+          Recordaste tu contraseña? Inicia sesión
         </Link>
       </div>
     </div>

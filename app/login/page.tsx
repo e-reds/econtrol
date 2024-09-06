@@ -1,5 +1,6 @@
 import Header from '@/components/Header/Header';
 import { createClient } from '@/utils/supabase/server';
+import { IconArrowBack } from '@tabler/icons-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -43,9 +44,9 @@ export default async function Login({
 
       <Link
         href="/"
-        className="py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover text-sm m-4"
+        className="py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover text-sm m-4 flex gap-2 items-center max-w-fit"
       >
-        Home
+        <IconArrowBack /> 
       </Link>
 
       <div className="w-full px-8 sm:max-w-md mx-auto mt-4">
@@ -73,7 +74,7 @@ export default async function Login({
             required
           />
           <button className="bg-indigo-700 rounded-md px-4 py-2 text-foreground mb-2">
-            Sign In
+            Ingresar
           </button>
 
           {searchParams?.message && (
@@ -87,18 +88,18 @@ export default async function Login({
           href="/forgot-password"
           className="rounded-md no-underline text-indigo-400 text-sm "
         >
-          Forgotten Password.
+          Perdiste tu contraseña.
         </Link>
 
         <br />
-        <br />
+       {/*  <br />
 
         <Link
           href="/signup"
           className="rounded-md no-underline text-foreground text-sm"
         >
           Don't have an Account? Sign Up
-        </Link>
+        </Link> */}
       </div>
     </div>
   );

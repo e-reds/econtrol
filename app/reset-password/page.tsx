@@ -1,5 +1,6 @@
 import Header from '@/components/Header/Header';
 import { createClient } from '@/utils/supabase/server';
+import { IconArrowBack } from '@tabler/icons-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -59,9 +60,9 @@ export default async function ResetPassword({
 
       <Link
         href="/"
-        className="py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover text-sm m-4"
+        className="py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover text-sm m-4 flex gap-2 items-center max-w-fit"
       >
-        Home
+        <IconArrowBack /> 
       </Link>
 
       <div className="w-full px-8 sm:max-w-md mx-auto mt-4">
@@ -70,7 +71,7 @@ export default async function ResetPassword({
           action={resetPassword}
         >
           <label className="text-md" htmlFor="password">
-            New Password
+            Nueva Contraseña
           </label>
           <input
             className="rounded-md px-4 py-2 bg-inherit border mb-6"
@@ -80,7 +81,7 @@ export default async function ResetPassword({
             required
           />
           <label className="text-md" htmlFor="password">
-            Confirm New Password
+            Confirmar Password
           </label>
           <input
             className="rounded-md px-4 py-2 bg-inherit border mb-6"
