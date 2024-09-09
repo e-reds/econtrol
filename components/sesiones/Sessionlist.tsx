@@ -25,8 +25,6 @@ interface Session {
   yape?: number;
   plin?: number;
   cash?: number;
-
-
 }
 
 interface Consumption {
@@ -252,7 +250,7 @@ const SessionList: React.FC<SessionListProps> = ({ selectedPC, updateSessions })
                   </div>
                   <div className="text-blue-500 forn-mono text-xs flex flex-row gap-2">
                     <Image src={plinImg} alt="plin" width={25} height={25} className="rounded-md" />
-                    <span className="mt-1 font-semibold">S/ {session.cash?.toFixed(2) || '0.00'}</span>
+                    <span className="mt-1 font-semibold">S/ {session.plin?.toFixed(2) || '0.00'}</span>
                   </div>                 
                   <div className="text-blue-500 forn-mono text-xs flex flex-row gap-2">
                   <IconCash className="w-25 h-25 text-blue-500" />

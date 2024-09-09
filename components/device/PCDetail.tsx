@@ -69,6 +69,7 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
     calculateTotalAmount();
   }, [consumptions]);
 
+  
   const fetchCurrentSession = async (pcId: string) => {
     try {
       const { data, error } = await supabase
@@ -137,7 +138,9 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
       if (error) throw error;
       // Actualiza el estado de ambas PCs de forma secuencial
       onUpdatePCStatus(selectedPC.id, 'available');  // Marca la PC original como disponible
-      onUpdatePCStatus(targetPC.id, 'occupied');     // Marca la PC de destino como ocupada
+      onUpdatePCStatus(targetPC.id, 'occupied');     // Marca la PC de destino como ocupada     
+      setCurrentSession(null);      
+      setStatus('available');
     } catch (err) {
       console.error('Error moving session:', err);
     }
