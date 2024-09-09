@@ -51,6 +51,7 @@ try {
       product_name: product.name,
       quantity: 1,
       price: product.price,
+      amount: product.price * 1,
     });
 
     if (error) {

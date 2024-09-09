@@ -18,6 +18,11 @@ const PCClientWrapper: React.FC = () => {
   const [updateSessions, setUpdateSessions] = useState(false); 
 
   useEffect(() => {
+    console.log("PCs updated:", pcs); // Verificar que el estado se actualiza correctamente
+  }, [pcs]);
+  
+
+  useEffect(() => {
     fetchPCs(); // Cargar todas las PCs al cargar el componente
   }, []);
   const fetchPCs = async () => {
@@ -36,30 +41,40 @@ const PCClientWrapper: React.FC = () => {
    // Función para actualizar el estado de una PC desde PCDetail
    const handleUpdatePCStatus = async (pcId: string, status: string) => {
     try {
+      // Actualizar el estado de una PC específica
       const { data, error } = await supabase
-      .from('pcs')
-      .update({ status })
-      .eq('id', pcId)
-      .select();
-
-    if (error) {
-      console.error('Error updating PC status:', error);
-    } else {
-      // Actualiza el estado global de las PCs
-      const updatedPCs = pcs.map((pc) =>
-        pc.id === pcId ? { ...pc, status: data[0].status } : pc
-      );
-      setPcs(updatedPCs); // Refleja el cambio en PCLayout
-       // Si la PC ahora está 'available', la sesión se cerró y actualizamos las sesiones
-    if (status === 'available') {
-      setUpdateSessions((prev) => !prev);  // Forzar la actualización de las sesiones en SessionList
-    }
-    } 
+        .from('pcs')
+        .update({ status })
+        .eq('id', pcId)
+        .select();
+  
+      if (error) {
+        console.error('Error updating PC status:', error);
+      } else {
+        console.log(data[0].number, data[0].status);
+        
+        // Después de actualizar el estado de la PC, vuelve a consultar todas las PCs
+        const { data: allPCs, error: fetchError } = await supabase
+          .from('pcs')
+          .select('*'); // Consulta todas las PCs nuevamente
+  
+        if (fetchError) {
+          console.error('Error fetching all PCs:', fetchError);
+        } else {
+          setPcs(allPCs || []); // Actualiza el estado con todas las PCs desde la base de datos
+          console.log("PCs actualizadas:", allPCs);
+  
+          // Si la PC ahora está 'available', actualizamos las sesiones
+          if (status === 'available') {
+            setUpdateSessions((prev) => !prev);  // Forzar la actualización de las sesiones en SessionList
+          }
+        }
+      }
     } catch (error) {
       console.error('Error updating PC status:', error);
     }
-   
   };
+  
   const handlePcSelect = (pc: PC) => {
     setSelectedPC(pc);
     console.log(pc);
