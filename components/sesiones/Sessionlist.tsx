@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { IconCalendarFilled, IconUser, IconClock, IconReceipt2, IconCreditCard, IconCash  } from '@tabler/icons-react';
+import { IconCalendarFilled, IconUser, IconClock, IconReceipt2, IconCreditCard, IconCash, IconCashRegister   } from '@tabler/icons-react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import yapeImg from '@/public/yape.png'
@@ -25,6 +25,8 @@ interface Session {
   yape?: number;
   plin?: number;
   cash?: number;
+  debt?: number;
+  money_advance?: number;
 }
 
 interface Consumption {
@@ -180,8 +182,8 @@ const SessionList: React.FC<SessionListProps> = ({ selectedPC, updateSessions })
                         })}
                       </p>
                     </div>
-                    {session.end_time && (
-                      <div className="flex items-center space-x-1">
+                   {/*  {session.end_time && session.debt && session.debt === 0 ? (
+                      <div className="flex items-center space-x-1 ">
                         <IconClock className="w-5 h-5 text-red-500" />
                         <p>
                           <strong>Fin:</strong> {new Date(session.end_time).toLocaleTimeString('es-PE', {
@@ -191,14 +193,23 @@ const SessionList: React.FC<SessionListProps> = ({ selectedPC, updateSessions })
                           })}
                         </p>
                       </div>
-                    )}
+                    ): null} */}
                     {/* Total en una fila separada */}
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 ">
                       <IconReceipt2 className="w-5 h-5 text-blue-500" />
                       <p>
                         <strong>Total:</strong> S/ <span className="font-bold">{session.total_amount?.toFixed(2) || '0.00'}</span>
                       </p>
                     </div>
+                    {session.debt && session.debt > 0 ? (
+                      <div className="flex items-center space-x-2">
+                      <IconCashRegister className="w-5 h-5 text-red-500" />
+                      <p>
+                        <strong>Debe:</strong> S/ <span className="font-bold text-red-500">{session.debt?.toFixed(2) || null}</span>
+                      </p>
+                    </div>
+                    ): null}
+                    
                   </div>
                 </div>
 

@@ -6,6 +6,7 @@ import MoveSessionPopover from './MoveSessionPopover';
 import { CustomAlert } from '@/components/ui/customalert';
 import TotalsAmount from './TotalsAmount';
 import { ConsumOptions } from './Consumoptions';
+import { CloseSession } from './CloseSession';
 interface PC {
   id: string;
   number: string;
@@ -18,14 +19,20 @@ interface Session {
   id: string;
   client_id: string;
   pc_number: string;
-  start_time?: string;
+  start_time: string;
   end_time?: string;
-  mode?: string;
+  mode: string;
   total_amount?: number;
   pc_id: string;
-  status: 'active' | 'inactive';
+  status: string;
   advance_payment?: number;
   observation?: string;
+  optional_client?: string;
+  yape?: number;
+  plin?: number;
+  cash?: number;
+  debt?: number;
+  money_advance?: number;
 }
 
 interface Consumption {
@@ -367,12 +374,22 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
           ) : (
             <>
               <div className="flex justify-between space-x-2 mb-4">
-                <button
+                <CloseSession 
+                currentSession={currentSession} 
+                selectedPC={selectedPC} 
+                totalAmount={totalAmount} 
+                totalAdvancePayment={currentSession?.advance_payment || 0 } 
+                onUpdatePCStatus={onUpdatePCStatus} 
+                setStatus={setStatus}
+                setCurrentSession={setCurrentSession}
+                setConsumptions={setConsumptions}                
+                />
+               {/*  <button
                   onClick={handleCloseSession}
                   className="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md"
                 >
                   Terminar
-                </button>
+                </button> */}
                 <button
                   className="w-full py-2 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-md"
                   onClick={handleOpenAlert}
