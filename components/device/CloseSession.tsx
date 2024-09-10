@@ -134,6 +134,29 @@ export function CloseSession({
         updateAllStates(yapeAmount, plinAmount, cashAmount, debitAmount, observation, newClientOptional, moneyAdvance);
     };
 
+const handleCreateDebit = async () => {
+    if (!selectedPC || !currentSession) return;
+    try {
+        const { error } = await supabase
+            .from("debits")
+            .insert({
+                pc_id: selectedPC.id,
+                session_id: currentSession.id,
+                amount: debitAmount,          
+                client_id: currentSession.client_id,
+                pc_number: currentSession.pc_number,      
+            })
+            .select()
+
+        if (error) {
+            console.error("Error creating debit:", error);
+        }
+    } catch 
+    
+    (error) 
+    {console.error("Error creating debit:", error);}
+}
+
     const handleCloseSession = async () => {
         if (!selectedPC || !currentSession) return;
         try {
@@ -170,6 +193,7 @@ export function CloseSession({
                 setObservation("");
                 setClientOptional("");
                 setMoneyAdvance(0);
+                handleCreateDebit();
             }
         } catch (error) {
             console.error("Error closing session:", error);
