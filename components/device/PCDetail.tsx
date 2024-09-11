@@ -7,6 +7,9 @@ import { CustomAlert } from '@/components/ui/customalert';
 import TotalsAmount from './TotalsAmount';
 import { ConsumOptions } from './Consumoptions';
 import { CloseSession } from './CloseSession';
+import { Button } from '@/components/ui/button';
+import { IconSquarePlus } from '@tabler/icons-react';
+import { Addclient } from './Addclient';
 interface PC {
   id: string;
   number: string;
@@ -76,7 +79,7 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
     calculateTotalAmount();
   }, [consumptions]);
 
-  
+
   const fetchCurrentSession = async (pcId: string) => {
     try {
       const { data, error } = await supabase
@@ -146,7 +149,7 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
       // Actualiza el estado de ambas PCs de forma secuencial
       onUpdatePCStatus(selectedPC.id, 'available');  // Marca la PC original como disponible
       onUpdatePCStatus(targetPC.id, 'occupied');     // Marca la PC de destino como ocupada     
-      setCurrentSession(null);      
+      setCurrentSession(null);
       setStatus('available');
     } catch (err) {
       console.error('Error moving session:', err);
@@ -362,7 +365,10 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
         <div className="mt-6 w-full">
           {status === 'available' && !currentSession ? (
             <>
-              <Clientlist clientId={clientId} setClientId={setClientId} />
+              <div className='flex flex-row gap-2'>
+                <div className='w-full'><Clientlist clientId={clientId} setClientId={setClientId} /></div>
+                <div><Addclient/></div>
+              </div>
               <button
                 onClick={handleOpenSession}
                 disabled={!clientId}
@@ -374,17 +380,17 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
           ) : (
             <>
               <div className="flex justify-between space-x-2 mb-4">
-                <CloseSession 
-                currentSession={currentSession} 
-                selectedPC={selectedPC} 
-                totalAmount={totalAmount} 
-                totalAdvancePayment={currentSession?.advance_payment || 0 } 
-                onUpdatePCStatus={onUpdatePCStatus} 
-                setStatus={setStatus}
-                setCurrentSession={setCurrentSession}
-                setConsumptions={setConsumptions}                
+                <CloseSession
+                  currentSession={currentSession}
+                  selectedPC={selectedPC}
+                  totalAmount={totalAmount}
+                  totalAdvancePayment={currentSession?.advance_payment || 0}
+                  onUpdatePCStatus={onUpdatePCStatus}
+                  setStatus={setStatus}
+                  setCurrentSession={setCurrentSession}
+                  setConsumptions={setConsumptions}
                 />
-               {/*  <button
+                {/*  <button
                   onClick={handleCloseSession}
                   className="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md"
                 >
@@ -427,7 +433,7 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
                 <h3 className="text-sm font-semibold mb-2">Productos Consumidos</h3>
                 <ul className="space-y-1">
 
-                <ConsumOptions consumptions={consumptions} handleUpdatePaid={handleUpdatePaid} handleUpdateQuantity={handleUpdateQuantity} handleRemoveConsumption={handleRemoveConsumption} />
+                  <ConsumOptions consumptions={consumptions} handleUpdatePaid={handleUpdatePaid} handleUpdateQuantity={handleUpdateQuantity} handleRemoveConsumption={handleRemoveConsumption} />
                 </ul>
                 <TotalsAmount montoTotal={totalAmount} adelantos={currentSession?.advance_payment || 0} totalAPagar={totalAmount - (currentSession?.advance_payment || 0)} sessionid={currentSession?.id || ''} observation={currentSession?.observation || ''} />
                 {/* <p className="text-sm mt-4">
