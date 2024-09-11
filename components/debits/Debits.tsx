@@ -114,7 +114,7 @@ export default function Debits() {
                     {error && <div className="text-red-500 mb-4">{error}</div>}
 
                     <div className="rounded-lg border border-gray-700 overflow-hidden">
-                        <ScrollArea className="h-[600px]">
+                        <ScrollArea className="h-[500px]">
                             <Table className="min-w-full divide-y divide-gray-700">
                                 <TableHeader>
                                     <TableRow className="bg-gray-800">
