@@ -145,6 +145,7 @@ const handleCreateDebit = async () => {
                 amount: debitAmount,          
                 client_id: currentSession.client_id,
                 pc_number: currentSession.pc_number,      
+                status: debitAmount > 0 ? false : true
             })
             .select()
 

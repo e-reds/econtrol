@@ -1,4 +1,4 @@
-import Header from '@/components/Header/Header';
+
 import { createClient } from '@/utils/supabase/server';
 import { IconArrowBack } from '@tabler/icons-react';
 import Link from 'next/link';
@@ -40,7 +40,7 @@ export default async function Login({
 
   return (
     <div>
-      <Header />
+     
 
       <Link
         href="/"
