@@ -3,7 +3,7 @@ import Draggable, { DraggableEvent, DraggableData } from 'react-draggable';
 import { createClient } from '@/utils/supabase/client';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { IconDragDrop, IconList, IconMap } from '@tabler/icons-react';
+import { IconDragDrop, IconLayoutGrid, IconList, IconRefresh  } from '@tabler/icons-react';
 
 interface PC {
   id: string;
@@ -42,6 +42,7 @@ const PCLayout: React.FC<PCLayoutProps> = ({ pcs: initialPcs, onPcSelect, onUpda
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map'); // Controla el modo de visualización
   const [sessions, setSessions] = useState<Session[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const[refresh, setRefresh] = useState(false);
 
   const supabase = createClient();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,7 +93,7 @@ const PCLayout: React.FC<PCLayoutProps> = ({ pcs: initialPcs, onPcSelect, onUpda
     };
 
     fetchSessionsAndClients();
-  }, [supabase]);
+  }, [supabase, refresh]);
 
   // Helper function to get client name
   const getClientNameForPC = (pcId: string) => {
@@ -135,7 +136,11 @@ const sortedPcs = [...pcs].sort((a, b) => {
             className="bg-gray-600 p-2 rounded-md flex items-center"
             onClick={() => setViewMode(viewMode === 'map' ? 'list' : 'map')}
           >
-            {viewMode === 'map' ? <IconList size={20} /> : <IconMap size={20} />}
+            {viewMode === 'map' ? <IconList size={20} /> : <IconLayoutGrid  size={20} />}            
+          </button>
+          <button  className="bg-gray-600 p-2 rounded-md flex items-center hover:bg-gray-500"
+          onClick={() => setRefresh(prev => !prev)}>
+          <IconRefresh size={20} className="text-white" />
           </button>
           <Switch checked={dragEnabled} onCheckedChange={setDragEnabled} />
           <IconDragDrop size={20} className="text-white" />
