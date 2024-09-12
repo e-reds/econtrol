@@ -75,9 +75,14 @@ export function CloseSession({
     const [change, setChange] = useState(0);
 
     const validateInputs = () => {
+        if (debitAmount > 0) {
+            return true;
+        }
+        
         if (yapeAmount > 0 || plinAmount > 0 || cashAmount > 0 || moneyAdvance > 0) {
             return true;
         }
+        
         setIsDialogOpen(false);
         return false;
     };
