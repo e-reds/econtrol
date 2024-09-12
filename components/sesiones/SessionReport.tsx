@@ -337,6 +337,7 @@ export default function SessionReport() {
       <div className="flex justify-between mt-4 font-bold">
         <span>Total Ventas: S/ {filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0).toFixed(2)}</span>
         <span>Total Deuda: S/ {totalDebt.toFixed(2)}</span>
+        <span>Total Efectivo: S/ {(filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0)-totalDebt).toFixed(2)}</span>
         <span>Yape: S/ {filteredSessions.reduce((sum, session) => sum + (session.yape || 0), 0).toFixed(2)}</span>
         <span>Plin: S/ {filteredSessions.reduce((sum, session) => sum + (session.plin || 0), 0).toFixed(2)}</span>
         <span>Cash: S/ {filteredSessions.reduce((sum, session) => sum + (session.cash || 0), 0).toFixed(2)}</span>

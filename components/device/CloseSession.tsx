@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/utils/supabase/client";
+import Swal from 'sweetalert2'
 
 const supabase = createClient();
 
@@ -63,6 +64,7 @@ export function CloseSession({
     setCurrentSession,
     setConsumptions,
 }: CloseSessionProps) {
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [yapeAmount, setYapeAmount] = useState(0);
     const [plinAmount, setPlinAmount] = useState(0);
     const [cashAmount, setCashAmount] = useState(0);
@@ -71,6 +73,14 @@ export function CloseSession({
     const [clientOptional, setClientOptional] = useState("");
     const [moneyAdvance, setMoneyAdvance] = useState(0);
     const [change, setChange] = useState(0);
+
+    const validateInputs = () => {
+        if (yapeAmount > 0 || plinAmount > 0 || cashAmount > 0 || moneyAdvance > 0) {
+            return true;
+        }
+        setIsDialogOpen(false);
+        return false;
+    };
 
     useEffect(() => {
         const totalPaid = moneyAdvance + cashAmount + plinAmount + yapeAmount;
@@ -134,77 +144,110 @@ export function CloseSession({
         updateAllStates(yapeAmount, plinAmount, cashAmount, debitAmount, observation, newClientOptional, moneyAdvance);
     };
 
-const handleCreateDebit = async () => {
-    if (!selectedPC || !currentSession) return;
-    try {
-        const { error } = await supabase
-            .from("debits")
-            .insert({
-                pc_id: selectedPC.id,
-                session_id: currentSession.id,
-                amount: debitAmount,          
-                client_id: currentSession.client_id,
-                pc_number: currentSession.pc_number,      
-                status: debitAmount > 0 ? false : true
-            })
-            .select()
-
-        if (error) {
-            console.error("Error creating debit:", error);
-        }
-    } catch 
-    
-    (error) 
-    {console.error("Error creating debit:", error);}
-}
-
-    const handleCloseSession = async () => {
+    const handleCreateDebit = async () => {
         if (!selectedPC || !currentSession) return;
         try {
             const { error } = await supabase
-                .from("sessions")
-                .update({
-                    end_time: new Date().toISOString(),
-                    total_amount: totalAmount,
-                    status: "inactive",
-                    advance_payment: totalAdvancePayment,
-                    yape: yapeAmount,
-                    plin: plinAmount,
-                    cash: cashAmount,
-                    debt: debitAmount,
-                    observation: observation,
-                    optional_client: clientOptional,
-                    money_advance: moneyAdvance,
-                    change: change,
+                .from("debits")
+                .insert({
+                    pc_id: selectedPC.id,
+                    session_id: currentSession.id,
+                    amount: debitAmount,
+                    client_id: currentSession.client_id,
+                    pc_number: currentSession.pc_number,
+                    status: debitAmount > 0 ? false : true
                 })
-                .eq("id", currentSession.id);
+                .select()
 
             if (error) {
-                console.error("Error closing session:", error);
-            } else {
-                onUpdatePCStatus(selectedPC.id, "available");
-                setCurrentSession(null);
-                setConsumptions([]);
-                setStatus("available");
-                // Reset form fields
-                setYapeAmount(0);
-                setPlinAmount(0);
-                setCashAmount(0);
-                setDebitAmount(0);
-                setObservation("");
-                setClientOptional("");
-                setMoneyAdvance(0);
-                handleCreateDebit();
+                console.error("Error creating debit:", error);
             }
-        } catch (error) {
-            console.error("Error closing session:", error);
+        } catch
+
+        (error) { console.error("Error creating debit:", error); }
+    }
+
+    const handleCloseSession = async () => {
+        if (!selectedPC || !currentSession) return;
+        if (!validateInputs()) {
+            setIsDialogOpen(false);
+            setTimeout(() => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "Debe ingresar un valor en al menos uno de los campos: Yape, Plin, Cash o Anticipo.",
+                    footer: '<a href="#">Pon mas atención VAGUITO!!!</a>',
+                    backdrop: `
+                    rgba(0,0,123,0.4)
+                    url("/error.gif")
+                    top center
+                    no-repeat
+                `,
+                });
+            }, 100);
+            return;
         }
+       
+           try {
+              const { error } = await supabase
+                  .from("sessions")
+                  .update({
+                      end_time: new Date().toISOString(),
+                      total_amount: totalAmount,
+                      status: "inactive",
+                      advance_payment: totalAdvancePayment,
+                      yape: yapeAmount,
+                      plin: plinAmount,
+                      cash: cashAmount,
+                      debt: debitAmount,
+                      observation: observation,
+                      optional_client: clientOptional,
+                      money_advance: moneyAdvance,
+                      change: change,
+                  })
+                  .eq("id", currentSession.id);
+  
+              if (error) {
+                  console.error("Error closing session:", error);
+              } else {
+                  onUpdatePCStatus(selectedPC.id, "available");
+                  setCurrentSession(null);
+                  setConsumptions([]);
+                  setStatus("available");
+                  // Reset form fields
+                  setYapeAmount(0);
+                  setPlinAmount(0);
+                  setCashAmount(0);
+                  setDebitAmount(0);
+                  setObservation("");
+                  setClientOptional("");
+                  setMoneyAdvance(0);
+                  handleCreateDebit();
+                  setIsDialogOpen(false);
+              }
+          } catch (error) {
+            setTimeout(() => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "Ocurrio un error inesperado. Muestra a Miguel el error que se muestra abajo",
+                    footer: { error },
+                    backdrop: `
+                    rgba(0,0,123,0.4)
+                    url("/errorerror.gif")
+                    top center
+                    no-repeat
+                `,
+                });
+            }, 100);
+              setIsDialogOpen(false);
+          }   
     };
 
     return (
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-                <button className="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md">
+                <button className="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md" onClick={() => setIsDialogOpen(true)}>
                     Cobrar
                 </button>
             </DialogTrigger>
