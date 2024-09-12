@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ColumnDef,
   useReactTable,
@@ -10,7 +10,6 @@ import {
   getFilteredRowModel,
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
@@ -22,6 +21,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+
+// Interfaces para definir la estructura de los datos
+interface Client {
+  id: string;
+  name: string;
+}
 
 interface Session {
   id: string;
@@ -38,20 +43,49 @@ interface Session {
   cash?: number;
 }
 
-interface Client {
+interface Debit {
   id: string;
-  name: string;
+  client_id: string;
+  amount: number;
+  created_at: string;
+  status: boolean;
 }
 
 export default function SessionReport() {
+  // Estados para manejar los filtros y datos
   const [globalFilter, setGlobalFilter] = useState('');
   const [startDate, setStartDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [clients, setClients] = useState<Client[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [debits, setDebits] = useState<Debit[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Inicializar el cliente de Supabase
   const supabase = createClient();
 
+  // Función para obtener los débitos
+  const fetchDebits = async () => {
+    const startDateISO = new Date(`${startDate}T00:00:00Z`).toISOString();
+    const endDateISO = new Date(`${endDate}T23:59:59Z`).toISOString();
+    try {
+      let { data, error } = await supabase
+        .from('debits')
+        .select('*')
+        .gte('created_at', startDateISO)
+        .lte('created_at', endDateISO)
+        .eq('status', false);
+      if (error) {            
+        console.error(error);
+      } else {
+        setDebits(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching debits:', error);
+    }
+  };
+
+  // Función para obtener los clientes
   const fetchClients = async () => {
     try {
       let { data, error } = await supabase.from('clients').select('*');
@@ -63,6 +97,7 @@ export default function SessionReport() {
     }
   };
 
+  // Función para obtener las sesiones
   const fetchSessions = async () => {
     try {
       let { data, error } = await supabase.from('sessions').select('*').eq('status', 'inactive');
@@ -74,6 +109,7 @@ export default function SessionReport() {
     }
   };
 
+  // Efecto para cargar los datos iniciales
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -81,6 +117,7 @@ export default function SessionReport() {
         const [clientsData, sessionsData] = await Promise.all([fetchClients(), fetchSessions()]);
         setClients(clientsData);
         setSessions(sessionsData);
+        await fetchDebits();
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -90,18 +127,30 @@ export default function SessionReport() {
     fetchData();
   }, []);
 
+  // Efecto para actualizar los débitos cuando cambian las fechas
+  useEffect(() => {
+    fetchDebits();
+  }, [startDate, endDate]);
+
   // Enriquecer las sesiones con el nombre del cliente
   const enrichedSessions = useMemo(() => {
     return sessions.map(session => {
       const client = clients.find(c => c.id === session.client_id);
       return {
         ...session,
-        clientName: client?.name || 'Desconocido', // Agregamos el nombre del cliente
+        clientName: client?.name || 'Desconocido',
       };
     });
   }, [sessions, clients]);
 
-  // Aplicar el filtro global basado en el nombre del cliente
+  // Filtrar los IDs de los clientes basados en la búsqueda global
+  const filteredClientIds = useMemo(() => {
+    return clients
+      .filter(client => client.name.toLowerCase().includes(globalFilter.toLowerCase()))
+      .map(client => client.id);
+  }, [clients, globalFilter]);
+
+  // Filtrar las sesiones basadas en las fechas y los IDs de los clientes filtrados
   const filteredSessions = useMemo(() => {
     const startDatePeru = toZonedTime(new Date(startDate), 'America/Lima');
     const endDatePeru = toZonedTime(new Date(endDate), 'America/Lima');
@@ -111,17 +160,24 @@ export default function SessionReport() {
         const sessionStartDate = toZonedTime(new Date(session.start_time), 'America/Lima');
         return sessionStartDate >= startDatePeru && sessionStartDate <= endDatePeru;
       })
-      .filter(session => {
-        const clientName = session.clientName.toLowerCase();
-        return clientName.includes(globalFilter.toLowerCase()); // Filtrar por nombre del cliente
-      });
-  }, [enrichedSessions, startDate, endDate, globalFilter]);
+      .filter(session => filteredClientIds.includes(session.client_id));
+  }, [enrichedSessions, startDate, endDate, filteredClientIds]);
 
+  // Filtrar los débitos basados en los IDs de los clientes filtrados
+  const filteredDebits = useMemo(() => {
+    return debits.filter(debit => filteredClientIds.includes(debit.client_id));
+  }, [debits, filteredClientIds]);
+
+  // Calcular el total de la deuda
+  const totalDebt = useMemo(() => {
+    return filteredDebits.reduce((sum, debit) => sum + (debit.amount || 0), 0);
+  }, [filteredDebits]);
+
+  // Definir las columnas de la tabla
   const columns = useMemo<ColumnDef<Session & { clientName: string }>[]>(() => [
     {
-      accessorKey: 'clientName', // Usar clientName ya enriquecido
+      accessorKey: 'clientName',
       header: 'Client Name',
-      cell: info => info.getValue(), // Mostrar el nombre del cliente directamente
     },
     {
       accessorKey: 'pc_number',
@@ -167,6 +223,7 @@ export default function SessionReport() {
     },
   ], []);
 
+  // Configurar la tabla
   const table = useReactTable({
     data: filteredSessions,
     columns,
@@ -179,17 +236,19 @@ export default function SessionReport() {
     },
     onGlobalFilterChange: setGlobalFilter,
     initialState: {
-      pagination: { pageSize: 20 },
+      pagination: { pageSize: 18 },
     },
   });
 
+  // Mostrar un indicador de carga mientras se obtienen los datos
   if (loading) {
     return <div>Loading...</div>;
   }
 
-
+  // Renderizar el componente
   return (
     <div className="p-4">
+      {/* Controles de filtro */}
       <div className="flex justify-between mb-4">
         <Input
           placeholder="Buscar por cliente"
@@ -211,7 +270,8 @@ export default function SessionReport() {
         </div>
       </div>
 
-      <div className="max-h-[780px] border rounded-md">
+      {/* Tabla de sesiones */}
+      <div className="max-h-[750px] border rounded-md">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
@@ -236,7 +296,7 @@ export default function SessionReport() {
             {table.getRowModel().rows.map(row => (
               <TableRow key={row.id}>
                 {row.getVisibleCells().map(cell => {
-                  const observation = cell.row.original.observation;
+                  const observation = (row.original as Session).observation;
                   return observation ? (
                     <TooltipProvider key={cell.id}>
                       <Tooltip>
@@ -258,6 +318,7 @@ export default function SessionReport() {
         </Table>
       </div>
 
+      {/* Controles de paginación */}
       <div className="flex justify-between items-center mt-4">
         <div className="flex gap-2">
           <Button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
@@ -272,9 +333,10 @@ export default function SessionReport() {
         </span>
       </div>
 
+      {/* Resumen de totales */}
       <div className="flex justify-between mt-4 font-bold">
-        <span>Total Amount: S/ {filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0).toFixed(2)}</span>
-        <span>Advance Payment: S/ {filteredSessions.reduce((sum, session) => sum + (session.advance_payment || 0), 0).toFixed(2)}</span>
+        <span>Total Ventas: S/ {filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0).toFixed(2)}</span>
+        <span>Total Deuda: S/ {totalDebt.toFixed(2)}</span>
         <span>Yape: S/ {filteredSessions.reduce((sum, session) => sum + (session.yape || 0), 0).toFixed(2)}</span>
         <span>Plin: S/ {filteredSessions.reduce((sum, session) => sum + (session.plin || 0), 0).toFixed(2)}</span>
         <span>Cash: S/ {filteredSessions.reduce((sum, session) => sum + (session.cash || 0), 0).toFixed(2)}</span>
