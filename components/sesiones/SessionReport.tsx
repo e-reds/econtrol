@@ -12,15 +12,16 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { format } from 'date-fns';
+import { format, toZonedTime } from 'date-fns-tz';
 import { createClient } from '@/utils/supabase/client';
-import { toZonedTime } from 'date-fns-tz';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { IconCash, IconCashBanknote, IconCashBanknoteOff  } from '@tabler/icons-react';
+import { Reportmov } from '@/components/Contable/Reportmov';
 
 // Interfaces para definir la estructura de los datos
 interface Client {
@@ -50,6 +51,15 @@ interface Debit {
   created_at: string;
   status: boolean;
 }
+interface MovContable {
+  id: string;
+  type: string;
+  amount: number;
+  detail: string;
+  created_at: string;
+}
+
+const TIME_ZONE = 'America/Lima';
 
 export default function SessionReport() {
   // Estados para manejar los filtros y datos
@@ -60,22 +70,43 @@ export default function SessionReport() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [debits, setDebits] = useState<Debit[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [movements, setMovements] = useState<MovContable[]>([]);
+const [ingresos, setIngresos] = useState<number>(0);
+const [egresos, setEgresos] = useState<number>(0);
   // Inicializar el cliente de Supabase
   const supabase = createClient();
 
+  // funcion para obtener los movimientos contables
+  const fetchMovements = async () => {
+    const startDatePeru = toZonedTime(new Date(`${startDate}T00:00:00Z`), TIME_ZONE);
+    const endDatePeru = toZonedTime(new Date(`${endDate}T23:59:59Z`).setDate(new Date(`${endDate}T00:00:00Z`).getDate() + 1), TIME_ZONE);
+    
+    try {
+      let { data, error } = await supabase
+        .from('mov_contable')
+        .select('*')
+        .gte('created_at', startDatePeru.toISOString())
+        .lt('created_at', endDatePeru.toISOString());
+      if (error) throw error;
+      setMovements(data || []);
+    } catch (error) {
+      console.error('Error fetching movements:', error);
+    }
+  };
+
   // Función para obtener los débitos
   const fetchDebits = async () => {
-    const startDateISO = new Date(`${startDate}T00:00:00Z`).toISOString();
-    const endDateISO = new Date(`${endDate}T23:59:59Z`).toISOString();
+    const startDatePeru = toZonedTime(new Date(`${startDate}T06:00:00`), TIME_ZONE);
+    const endDatePeru = toZonedTime(new Date(`${endDate}T06:00:00`).setDate(new Date(`${endDate}T06:00:00`).getDate() + 1), TIME_ZONE);
+    
     try {
       let { data, error } = await supabase
         .from('debits')
         .select('*')
-        .gte('created_at', startDateISO)
-        .lte('created_at', endDateISO)
+        .gte('created_at', startDatePeru.toISOString())
+        .lt('created_at', endDatePeru.toISOString())
         .eq('status', false);
-      if (error) {            
+      if (error) {
         console.error(error);
       } else {
         setDebits(data || []);
@@ -97,17 +128,17 @@ export default function SessionReport() {
     }
   };
 
-  // Función para obtener las sesiones
-  const fetchSessions = async () => {
-    try {
-      let { data, error } = await supabase.from('sessions').select('*').eq('status', 'inactive');
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
-      return [];
-    }
-  };
+ // Función para obtener las sesiones
+ const fetchSessions = async () => {
+  try {
+    let { data, error } = await supabase.from('sessions').select('*').eq('status', 'inactive');
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching sessions:', error);
+    return [];
+  }
+};
 
   // Efecto para cargar los datos iniciales
   useEffect(() => {
@@ -118,6 +149,7 @@ export default function SessionReport() {
         setClients(clientsData);
         setSessions(sessionsData);
         await fetchDebits();
+        await fetchMovements();
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -125,12 +157,15 @@ export default function SessionReport() {
       }
     };
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   // Efecto para actualizar los débitos cuando cambian las fechas
   useEffect(() => {
-    fetchDebits();
-  }, [startDate, endDate]);
+    const totalIngresos = movements.filter(mov => mov.type === "ingreso").reduce((sum, mov) => sum + mov.amount, 0);
+    const totalEgresos = movements.filter(mov => mov.type === "egreso").reduce((sum, mov) => sum + mov.amount, 0);
+    setIngresos(totalIngresos);
+    setEgresos(totalEgresos);
+  }, [movements]);
 
   // Enriquecer las sesiones con el nombre del cliente
   const enrichedSessions = useMemo(() => {
@@ -150,15 +185,14 @@ export default function SessionReport() {
       .map(client => client.id);
   }, [clients, globalFilter]);
 
-  // Filtrar las sesiones basadas en las fechas y los IDs de los clientes filtrados
   const filteredSessions = useMemo(() => {
-    const startDatePeru = toZonedTime(new Date(startDate), 'America/Lima');
-    const endDatePeru = toZonedTime(new Date(endDate), 'America/Lima');
+    const startDatePeru = toZonedTime(new Date(`${startDate}T06:00:00`), TIME_ZONE);
+    const endDatePeru = toZonedTime(new Date(`${endDate}T06:00:00`).setDate(new Date(`${endDate}T06:00:00`).getDate() + 1), TIME_ZONE);
 
     return enrichedSessions
       .filter(session => {
-        const sessionStartDate = toZonedTime(new Date(session.start_time), 'America/Lima');
-        return sessionStartDate >= startDatePeru && sessionStartDate <= endDatePeru;
+        const sessionStartDate = toZonedTime(new Date(session.start_time), TIME_ZONE);
+        return sessionStartDate >= startDatePeru && sessionStartDate < endDatePeru;
       })
       .filter(session => filteredClientIds.includes(session.client_id));
   }, [enrichedSessions, startDate, endDate, filteredClientIds]);
@@ -186,14 +220,14 @@ export default function SessionReport() {
     {
       accessorKey: 'start_time',
       header: 'Start Time',
-      cell: info => format(new Date(info.getValue() as string), 'yyyy-MM-dd HH:mm'),
+      cell: info => format(toZonedTime(new Date(info.getValue() as string), TIME_ZONE), 'yyyy-MM-dd HH:mm', { timeZone: TIME_ZONE }),
     },
     {
       accessorKey: 'end_time',
       header: 'End Time',
       cell: info => {
         const endTime = info.getValue() as string | undefined;
-        return endTime ? format(new Date(endTime), 'yyyy-MM-dd HH:mm') : 'En curso';
+        return endTime ? format(toZonedTime(new Date(endTime), TIME_ZONE), 'yyyy-MM-dd HH:mm', { timeZone: TIME_ZONE }) : 'En curso';
       },
     },
     {
@@ -337,10 +371,29 @@ export default function SessionReport() {
       <div className="flex justify-between mt-4 font-bold">
         <span>Total Ventas: S/ {filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0).toFixed(2)}</span>
         <span>Total Deuda: S/ {totalDebt.toFixed(2)}</span>
-        <span>Total Efectivo: S/ {(filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0)-totalDebt).toFixed(2)}</span>
-        <span>Yape: S/ {filteredSessions.reduce((sum, session) => sum + (session.yape || 0), 0).toFixed(2)}</span>
-        <span>Plin: S/ {filteredSessions.reduce((sum, session) => sum + (session.plin || 0), 0).toFixed(2)}</span>
-        <span>Cash: S/ {filteredSessions.reduce((sum, session) => sum + (session.cash || 0), 0).toFixed(2)}</span>
+        <div className='flex flex-row gap-2'>
+          <div className='flex flex-row gap-2'>
+            <IconCashBanknote className='w-8 h-8 rounded-sm text-green-500' />
+            <span className='text-lg font-bold font-mono'><Reportmov type="ingreso" title="Ingreso" /> S/ {ingresos.toFixed(2)}</span>
+          </div>
+          <div className='flex flex-row gap-2'>
+            <IconCashBanknoteOff className='w-8 h-8 rounded-sm text-red-500' />
+            <span className='text-lg font-bold font-mono'><Reportmov type="egreso" title="Egreso" /> S/ {egresos.toFixed(2)}</span>
+          </div>
+        </div>
+        <span>Total Efectivo: S/ {(filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0)-totalDebt+ingresos-egresos).toFixed(2)}</span>
+        <div className='flex flex-row gap-4'>
+          <div className='flex flex-row gap-2'><img src="/yape.png" alt="yape" className='w-6 h-6 rounded-sm' />
+           <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.yape || 0), 0).toFixed(2)}</span>
+           </div>
+           <div className='flex flex-row gap-2'><img src="/plin.png" alt="yape" className='w-6 h-6 rounded-sm' />
+           <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.plin || 0), 0).toFixed(2)}</span>
+           </div>
+          <div className='flex flex-row gap-2'><IconCash className='w-8 h-8 rounded-sm text-sky-500' />
+          <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.cash || 0), 0).toFixed(2)}</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );
