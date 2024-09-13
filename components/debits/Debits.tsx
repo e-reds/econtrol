@@ -24,20 +24,26 @@ export default function Debits() {
     const [refreshdata, setRefreshdata] = useState<boolean>(false);
 
     const supabase = createClient();
-
+  // funcion para obtener los movimientos contables
+  const TIME_ZONE_OFFSET = -5; // Perú está en UTC-5
     // Fetch debits
     const fetchDebits = async () => {
         if (!clientId) return;
 
-        const startDateISO = new Date(`${startDate}T00:00:00Z`).toISOString();
-        const endDateISO = new Date(`${endDate}T23:59:59Z`).toISOString();
+       // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+    const startDatePeru = new Date(`${startDate}T06:00:00`);
+    const endDatePeru = new Date(`${endDate}T06:00:00`);
+
+    // Ajustar el offset manualmente para convertir a UTC
+    const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+    const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
         try {
             let { data, error } = await supabase
                 .from('debits')
                 .select('*')
                 .eq('client_id', clientId)
-                .gte('created_at', startDateISO)
-                .lte('created_at', endDateISO)
+                .gte('created_at', startDateUtc.toISOString())
+                .lte('created_at', endDateUtc.toISOString())
                 .eq('status', statusFilter);
 
             if (error) {

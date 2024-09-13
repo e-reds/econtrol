@@ -12,7 +12,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { format, toZonedTime } from 'date-fns-tz';
+import { format, toZonedTime} from 'date-fns-tz';
 import { createClient } from '@/utils/supabase/client';
 import {
   Tooltip,
@@ -77,16 +77,23 @@ export default function SessionReport() {
   const supabase = createClient();
 
   // funcion para obtener los movimientos contables
+  const TIME_ZONE_OFFSET = -5; // Perú está en UTC-5
+
   const fetchMovements = async () => {
-    const startDatePeru = toZonedTime(new Date(`${startDate}T00:00:00Z`), TIME_ZONE);
-    const endDatePeru = toZonedTime(new Date(`${endDate}T23:59:59Z`).setDate(new Date(`${endDate}T00:00:00Z`).getDate() + 1), TIME_ZONE);
+    // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+    const startDatePeru = new Date(`${startDate}T06:00:00`);
+    const endDatePeru = new Date(`${endDate}T06:00:00`);
+
+    // Ajustar el offset manualmente para convertir a UTC
+    const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+    const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
 
     try {
       let { data, error } = await supabase
         .from('mov_contable')
         .select('*')
-        .gte('created_at', startDatePeru.toISOString())
-        .lt('created_at', endDatePeru.toISOString());
+        .gte('created_at', startDateUtc.toISOString())
+        .lt('created_at', endDateUtc.toISOString());
       if (error) throw error;
       setMovements(data || []);
     } catch (error) {
@@ -94,17 +101,23 @@ export default function SessionReport() {
     }
   };
 
+
   // Función para obtener los débitos
   const fetchDebits = async () => {
-    const startDatePeru = toZonedTime(new Date(`${startDate}T06:00:00`), TIME_ZONE);
-    const endDatePeru = toZonedTime(new Date(`${endDate}T06:00:00`).setDate(new Date(`${endDate}T06:00:00`).getDate() + 1), TIME_ZONE);
+    // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+    const startDatePeru = new Date(`${startDate}T06:00:00`);
+    const endDatePeru = new Date(`${endDate}T06:00:00`);
+
+    // Ajustar el offset manualmente para convertir a UTC
+    const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+    const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
 
     try {
       let { data, error } = await supabase
         .from('debits')
         .select('*')
-        .gte('created_at', startDatePeru.toISOString())
-        .lt('created_at', endDatePeru.toISOString())
+        .gte('created_at', startDateUtc.toISOString())
+        .lt('created_at', endDateUtc.toISOString())
         .eq('status', false);
       if (error) {
         console.error(error);
@@ -130,13 +143,18 @@ export default function SessionReport() {
 
   // Función para obtener las sesiones
   const fetchSessions = async () => {
-    const startDatePeru = toZonedTime(new Date(`${startDate}T06:00:00`), TIME_ZONE);
-    const endDatePeru = toZonedTime(new Date(`${endDate}T06:00:00`).setDate(new Date(`${endDate}T06:00:00`).getDate() + 1), TIME_ZONE);
+    // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+    const startDatePeru = new Date(`${startDate}T06:00:00`);
+    const endDatePeru = new Date(`${endDate}T06:00:00`);
+
+    // Ajustar el offset manualmente para convertir a UTC
+    const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+    const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
     try {
       let { data, error } = await supabase.from('sessions').select('*')
-      .gte('start_time', startDatePeru.toISOString())
-      .lt('start_time', endDatePeru.toISOString())
-      .eq('status', 'inactive');
+        .gte('start_time', startDateUtc.toISOString())
+        .lt('start_time', endDateUtc.toISOString())
+        .eq('status', 'inactive');
       if (error) throw error;
       return data || [];
     } catch (error) {

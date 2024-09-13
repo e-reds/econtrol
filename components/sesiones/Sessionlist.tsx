@@ -58,13 +58,14 @@ const SessionList: React.FC<SessionListProps> = ({ selectedPC, updateSessions })
   }, [selectedPC, startDate, endDate, updateSessions]); // Agregar updateSessions como dependencia
 
   const fetchSessions = async () => {
+    
     try {
       const { data: sessionsData, error: sessionsError } = await supabase
         .from("sessions")
         .select("*, clients(name)")
         .eq("pc_number", selectedPC)
-        .gte("start_time", startDate)
-        .lte("start_time", endDate + "T23:59:59Z");
+        .gte("start_time", startDate+"T05:00:00Z")
+        .lte("start_time", endDate + "T05:59:59Z");
 
       if (sessionsError) {
         console.error("Error fetching sessions:", sessionsError);

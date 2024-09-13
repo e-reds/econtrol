@@ -24,7 +24,8 @@ export default function Reports() {
     const [refreshdata, setRefreshdata] = useState<boolean>(false);
 
     const supabase = createClient();
-
+    // funcion para obtener los movimientos contables
+    const TIME_ZONE_OFFSET = -5; // Perú está en UTC-5
     // Fetch clients
     const fetchClients = async () => {
         try {
@@ -43,14 +44,20 @@ export default function Reports() {
 
     // Fetch debits
     const fetchDebits = async () => {
-        const startDateISO = new Date(`${startDate}T00:00:00Z`).toISOString();
-        const endDateISO = new Date(`${endDate}T23:59:59Z`).toISOString();
+
+        // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+        const startDatePeru = new Date(`${startDate}T06:00:00`);
+        const endDatePeru = new Date(`${endDate}T06:00:00`);
+
+        // Ajustar el offset manualmente para convertir a UTC
+        const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+        const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
         try {
             let { data, error } = await supabase
                 .from('debits')
-                .select('*')                
-                .gte('created_at', startDateISO)
-                .lte('created_at', endDateISO)
+                .select('*')
+                .gte('created_at', startDateUtc.toISOString())
+                .lte('created_at', endDateUtc.toISOString())
                 .eq('status', statusFilter);
 
             if (error) {
@@ -84,7 +91,7 @@ export default function Reports() {
     return (
         <div className="container mx-auto p-6 space-y-8 bg-gray-900 text-gray-100 rounded-xl shadow-lg">
             {/* Header and Client Selector */}
-            <div className="flex flex-wrap justify-between items-center bg-gray-800 p-6 rounded-lg shadow-md">          
+            <div className="flex flex-wrap justify-between items-center bg-gray-800 p-6 rounded-lg shadow-md">
                 <div className="flex flex-wrap gap-4 mt-4">
                     <div className="flex flex-col space-y-2">
                         <Label htmlFor="startDate">Fecha Inicio</Label>
@@ -149,7 +156,7 @@ export default function Reports() {
                                             {debit.status ? 'Pagado' : 'Debe'}
                                         </TableCell>
                                         <TableCell className="py-3 px-4 text-right">
-                                           <Debitsdetails debts_id={debit.id} />
+                                            <Debitsdetails debts_id={debit.id} />
                                         </TableCell>
                                         <TableCell className="py-3 px-4 text-right">
                                             {debit.status ? (
