@@ -20,7 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { IconCash, IconCashBanknote, IconCashBanknoteOff  } from '@tabler/icons-react';
+import { IconCash, IconCashBanknote, IconCashBanknoteOff } from '@tabler/icons-react';
 import { Reportmov } from '@/components/Contable/Reportmov';
 
 // Interfaces para definir la estructura de los datos
@@ -71,8 +71,8 @@ export default function SessionReport() {
   const [debits, setDebits] = useState<Debit[]>([]);
   const [loading, setLoading] = useState(true);
   const [movements, setMovements] = useState<MovContable[]>([]);
-const [ingresos, setIngresos] = useState<number>(0);
-const [egresos, setEgresos] = useState<number>(0);
+  const [ingresos, setIngresos] = useState<number>(0);
+  const [egresos, setEgresos] = useState<number>(0);
   // Inicializar el cliente de Supabase
   const supabase = createClient();
 
@@ -80,7 +80,7 @@ const [egresos, setEgresos] = useState<number>(0);
   const fetchMovements = async () => {
     const startDatePeru = toZonedTime(new Date(`${startDate}T00:00:00Z`), TIME_ZONE);
     const endDatePeru = toZonedTime(new Date(`${endDate}T23:59:59Z`).setDate(new Date(`${endDate}T00:00:00Z`).getDate() + 1), TIME_ZONE);
-    
+
     try {
       let { data, error } = await supabase
         .from('mov_contable')
@@ -98,7 +98,7 @@ const [egresos, setEgresos] = useState<number>(0);
   const fetchDebits = async () => {
     const startDatePeru = toZonedTime(new Date(`${startDate}T06:00:00`), TIME_ZONE);
     const endDatePeru = toZonedTime(new Date(`${endDate}T06:00:00`).setDate(new Date(`${endDate}T06:00:00`).getDate() + 1), TIME_ZONE);
-    
+
     try {
       let { data, error } = await supabase
         .from('debits')
@@ -128,17 +128,22 @@ const [egresos, setEgresos] = useState<number>(0);
     }
   };
 
- // Función para obtener las sesiones
- const fetchSessions = async () => {
-  try {
-    let { data, error } = await supabase.from('sessions').select('*').eq('status', 'inactive');
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching sessions:', error);
-    return [];
-  }
-};
+  // Función para obtener las sesiones
+  const fetchSessions = async () => {
+    const startDatePeru = toZonedTime(new Date(`${startDate}T06:00:00`), TIME_ZONE);
+    const endDatePeru = toZonedTime(new Date(`${endDate}T06:00:00`).setDate(new Date(`${endDate}T06:00:00`).getDate() + 1), TIME_ZONE);
+    try {
+      let { data, error } = await supabase.from('sessions').select('*')
+      .gte('start_time', startDatePeru.toISOString())
+      .lt('start_time', endDatePeru.toISOString())
+      .eq('status', 'inactive');
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      return [];
+    }
+  };
 
   // Efecto para cargar los datos iniciales
   useEffect(() => {
@@ -381,16 +386,16 @@ const [egresos, setEgresos] = useState<number>(0);
             <span className='text-lg font-bold font-mono'><Reportmov type="egreso" title="Egreso" /> S/ {egresos.toFixed(2)}</span>
           </div>
         </div>
-        <span>Total Efectivo: S/ {(filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0)-totalDebt+ingresos-egresos).toFixed(2)}</span>
+        <span>Total Efectivo: S/ {(filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0) - totalDebt + ingresos - egresos).toFixed(2)}</span>
         <div className='flex flex-row gap-4'>
           <div className='flex flex-row gap-2'><img src="/yape.png" alt="yape" className='w-6 h-6 rounded-sm' />
-           <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.yape || 0), 0).toFixed(2)}</span>
-           </div>
-           <div className='flex flex-row gap-2'><img src="/plin.png" alt="yape" className='w-6 h-6 rounded-sm' />
-           <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.plin || 0), 0).toFixed(2)}</span>
-           </div>
+            <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.yape || 0), 0).toFixed(2)}</span>
+          </div>
+          <div className='flex flex-row gap-2'><img src="/plin.png" alt="yape" className='w-6 h-6 rounded-sm' />
+            <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.plin || 0), 0).toFixed(2)}</span>
+          </div>
           <div className='flex flex-row gap-2'><IconCash className='w-8 h-8 rounded-sm text-sky-500' />
-          <span className='text-lg font-bold font-mono'>S/ {(filteredSessions.reduce((sum, session) => sum + (session.cash || 0), 0)-egresos).toFixed(2)}</span>
+            <span className='text-lg font-bold font-mono'>S/ {(filteredSessions.reduce((sum, session) => sum + (session.cash || 0), 0) - egresos).toFixed(2)}</span>
           </div>
         </div>
 
