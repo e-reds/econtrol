@@ -390,7 +390,7 @@ const [egresos, setEgresos] = useState<number>(0);
            <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.plin || 0), 0).toFixed(2)}</span>
            </div>
           <div className='flex flex-row gap-2'><IconCash className='w-8 h-8 rounded-sm text-sky-500' />
-          <span className='text-lg font-bold font-mono'>S/ {filteredSessions.reduce((sum, session) => sum + (session.cash || 0), 0).toFixed(2)}</span>
+          <span className='text-lg font-bold font-mono'>S/ {(filteredSessions.reduce((sum, session) => sum + (session.cash || 0), 0)-egresos).toFixed(2)}</span>
           </div>
         </div>
 
