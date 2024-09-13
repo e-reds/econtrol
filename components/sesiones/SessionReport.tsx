@@ -12,7 +12,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { format, toZonedTime} from 'date-fns-tz';
+import { format, toZonedTime, formatInTimeZone  } from 'date-fns-tz';
 import { createClient } from '@/utils/supabase/client';
 import {
   Tooltip,
@@ -76,24 +76,23 @@ export default function SessionReport() {
   // Inicializar el cliente de Supabase
   const supabase = createClient();
 
-  // funcion para obtener los movimientos contables
-  const TIME_ZONE_OFFSET = -5; // Perú está en UTC-5
+ 
 
   const fetchMovements = async () => {
     // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
-    const startDatePeru = new Date(`${startDate}T06:00:00`);
-    const endDatePeru = new Date(`${endDate}T06:00:00`);
+    const startDatePeru = `${startDate}T06:00:00-05:00`;
+    const endDatePeru = `${endDate}T06:00:00-05:00`;
 
-    // Ajustar el offset manualmente para convertir a UTC
-    const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
-    const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+    // Convertir a UTC usando date-fns-tz
+    const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+    const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
 
     try {
       let { data, error } = await supabase
         .from('mov_contable')
         .select('*')
-        .gte('created_at', startDateUtc.toISOString())
-        .lt('created_at', endDateUtc.toISOString());
+        .gte('created_at', startDateUtc)
+        .lt('created_at', endDateUtc);
       if (error) throw error;
       setMovements(data || []);
     } catch (error) {
@@ -105,19 +104,19 @@ export default function SessionReport() {
   // Función para obtener los débitos
   const fetchDebits = async () => {
     // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
-    const startDatePeru = new Date(`${startDate}T06:00:00`);
-    const endDatePeru = new Date(`${endDate}T06:00:00`);
+    const startDatePeru = `${startDate}T06:00:00-05:00`;
+    const endDatePeru = `${endDate}T06:00:00-05:00`;
 
-    // Ajustar el offset manualmente para convertir a UTC
-    const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
-    const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+    // Convertir a UTC usando date-fns-tz
+    const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+    const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
 
     try {
       let { data, error } = await supabase
         .from('debits')
         .select('*')
-        .gte('created_at', startDateUtc.toISOString())
-        .lt('created_at', endDateUtc.toISOString())
+        .gte('created_at', startDateUtc)
+        .lt('created_at', endDateUtc)
         .eq('status', false);
       if (error) {
         console.error(error);
@@ -144,16 +143,16 @@ export default function SessionReport() {
   // Función para obtener las sesiones
   const fetchSessions = async () => {
     // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
-    const startDatePeru = new Date(`${startDate}T06:00:00`);
-    const endDatePeru = new Date(`${endDate}T06:00:00`);
+    const startDatePeru = `${startDate}T06:00:00-05:00`;
+    const endDatePeru = `${endDate}T06:00:00-05:00`;
 
-    // Ajustar el offset manualmente para convertir a UTC
-    const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
-    const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+    // Convertir a UTC usando date-fns-tz
+    const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+    const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
     try {
       let { data, error } = await supabase.from('sessions').select('*')
-        .gte('start_time', startDateUtc.toISOString())
-        .lt('start_time', endDateUtc.toISOString())
+        .gte('start_time', startDateUtc)
+        .lt('start_time', endDateUtc)
         .eq('status', 'inactive');
       if (error) throw error;
       return data || [];
@@ -188,7 +187,7 @@ export default function SessionReport() {
     const totalEgresos = movements.filter(mov => mov.type === "egreso").reduce((sum, mov) => sum + mov.amount, 0);
     setIngresos(totalIngresos);
     setEgresos(totalEgresos);
-  }, [movements]);
+  }, [movements, startDate, endDate]);
 
   // Enriquecer las sesiones con el nombre del cliente
   const enrichedSessions = useMemo(() => {
@@ -209,15 +208,23 @@ export default function SessionReport() {
   }, [clients, globalFilter]);
 
   const filteredSessions = useMemo(() => {
-    const startDatePeru = toZonedTime(new Date(`${startDate}T06:00:00`), TIME_ZONE);
-    const endDatePeru = toZonedTime(new Date(`${endDate}T06:00:00`).setDate(new Date(`${endDate}T06:00:00`).getDate() + 1), TIME_ZONE);
+     // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+     const startDatePeru = `${startDate}T06:00:00-05:00`;
+     const endDatePeru = `${endDate}T06:00:00-05:00`;
+ 
+     // Convertir a UTC usando date-fns-tz
+     const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+     const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+ 
+     const startDateUtcDate = new Date(startDateUtc);
+     const endDateUtcDate = new Date(endDateUtc);
 
-    return enrichedSessions
-      .filter(session => {
-        const sessionStartDate = toZonedTime(new Date(session.start_time), TIME_ZONE);
-        return sessionStartDate >= startDatePeru && sessionStartDate < endDatePeru;
-      })
-      .filter(session => filteredClientIds.includes(session.client_id));
+     return enrichedSessions
+     .filter(session => {
+       const sessionStartDate = toZonedTime(new Date(session.start_time), TIME_ZONE);
+       return sessionStartDate >= startDateUtcDate && sessionStartDate < endDateUtcDate;
+     })
+     .filter(session => filteredClientIds.includes(session.client_id));
   }, [enrichedSessions, startDate, endDate, filteredClientIds]);
 
   // Filtrar los débitos basados en los IDs de los clientes filtrados
@@ -293,7 +300,7 @@ export default function SessionReport() {
     },
     onGlobalFilterChange: setGlobalFilter,
     initialState: {
-      pagination: { pageSize: 18 },
+      pagination: { pageSize: 15 },
     },
   });
 
@@ -397,11 +404,11 @@ export default function SessionReport() {
         <div className='flex flex-row gap-2'>
           <div className='flex flex-row gap-2'>
             <IconCashBanknote className='w-8 h-8 rounded-sm text-green-500' />
-            <span className='text-lg font-bold font-mono'><Reportmov type="ingreso" title="Ingreso" /> S/ {ingresos.toFixed(2)}</span>
+            <span className='text-lg font-bold font-mono'><Reportmov type="ingreso" title="Ingreso" startDate={startDate} endDate={endDate} /> S/ {ingresos.toFixed(2)}</span>
           </div>
           <div className='flex flex-row gap-2'>
             <IconCashBanknoteOff className='w-8 h-8 rounded-sm text-red-500' />
-            <span className='text-lg font-bold font-mono'><Reportmov type="egreso" title="Egreso" /> S/ {egresos.toFixed(2)}</span>
+            <span className='text-lg font-bold font-mono'><Reportmov type="egreso" title="Egreso" startDate={startDate} endDate={endDate} /> S/ {egresos.toFixed(2)}</span>
           </div>
         </div>
         <span>Total Efectivo: S/ {(filteredSessions.reduce((sum, session) => sum + (session.total_amount || 0), 0) - totalDebt + ingresos - egresos).toFixed(2)}</span>

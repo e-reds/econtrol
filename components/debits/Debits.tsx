@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { IconListDetails } from '@tabler/icons-react';
 import { Payment } from "./Payment";
 import { Debitsdetails } from "./Debitsdetails";
+import { formatInTimeZone } from "date-fns-tz";
 
 export default function Debits() {
     const [clientId, setClientId] = useState<string>("");
@@ -30,20 +31,20 @@ export default function Debits() {
     const fetchDebits = async () => {
         if (!clientId) return;
 
-       // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
-    const startDatePeru = new Date(`${startDate}T06:00:00`);
-    const endDatePeru = new Date(`${endDate}T06:00:00`);
+    // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+    const startDatePeru = `${startDate}T06:00:00-05:00`;
+    const endDatePeru = `${endDate}T06:00:00-05:00`;
 
-    // Ajustar el offset manualmente para convertir a UTC
-    const startDateUtc = new Date(startDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
-    const endDateUtc = new Date(endDatePeru.getTime() - TIME_ZONE_OFFSET * 60 * 60 * 1000);
+    // Convertir a UTC usando date-fns-tz
+    const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+    const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
         try {
             let { data, error } = await supabase
                 .from('debits')
                 .select('*')
                 .eq('client_id', clientId)
-                .gte('created_at', startDateUtc.toISOString())
-                .lte('created_at', endDateUtc.toISOString())
+                .gte('created_at', startDateUtc)
+                .lte('created_at', endDateUtc)
                 .eq('status', statusFilter);
 
             if (error) {

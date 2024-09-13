@@ -9,11 +9,13 @@ import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { format } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { toZonedTime, formatInTimeZone  } from 'date-fns-tz';
 
 interface ReportmovProps {
     type: string;
     title: string;
+    startDate: string;
+    endDate: string;
 }
 interface Data {
     id: string;
@@ -23,15 +25,24 @@ interface Data {
     created_at: string;
 }
 const TIME_ZONE = 'America/Lima';
-export const Reportmov: React.FC<ReportmovProps> = ({ type, title }) => {
+export const Reportmov: React.FC<ReportmovProps> = ({ type, title, startDate, endDate }) => {
     const supabase = createClient();
     const [isOpen, setIsOpen] = useState(false);
     const [data, setData] = useState<Data[]>([]);
+     // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+     const startDatePeru = `${startDate}T06:00:00-05:00`;
+     const endDatePeru = `${endDate}T06:00:00-05:00`;
+ 
+     // Convertir a UTC usando date-fns-tz
+     const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+     const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
     useEffect(() => {
         const fetchData = async () => {
             const { data, error } = await supabase
                 .from('mov_contable')
                 .select('*')
+                .gte('created_at', startDateUtc)
+                .lte('created_at', endDateUtc)
                 .eq('type', type);
             if (error) {
                 console.error('Error fetching data:', error);
