@@ -31,13 +31,13 @@ export default function Debits() {
     const fetchDebits = async () => {
         if (!clientId) return;
 
-    // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
-    const startDatePeru = `${startDate}T06:00:00-05:00`;
-    const endDatePeru = `${endDate}T06:00:00-05:00`;
+  // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+  const startDatePeru = `${startDate}T06:00:00-05:00`;
+  const endDatePeru = `${endDate}T06:00:00-05:00`;
 
-    // Convertir a UTC usando date-fns-tz
-    const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
-    const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+  // Convertir a UTC usando date-fns-tz
+  const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+  const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
         try {
             let { data, error } = await supabase
                 .from('debits')
@@ -52,6 +52,7 @@ export default function Debits() {
                 console.error(error);
             } else {
                 setDebits(data || []);
+                console.log(data);
             }
         } catch (error) {
             console.error('Error fetching debits:', error);

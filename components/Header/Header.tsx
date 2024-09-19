@@ -1,6 +1,7 @@
 import User from '../User';
 import classes from './Header.module.css';
 import { Movimientos } from '../Contable/Movimientos';
+import { Caja } from '../Contable/Caja';
 export default async function Header() {
   return (
     <div className={classes.header}>
@@ -17,6 +18,9 @@ export default async function Header() {
         </li>
         <li >
           <Movimientos />
+        </li>
+        <li>
+          <Caja />
         </li>
       </ul>
       <User />
