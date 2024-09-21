@@ -129,7 +129,7 @@ export function Caja() {
                                             <p style="color: #13d8bd;"><strong>Total Plin:</strong> S/ ${totalPlin.toFixed(2)}</p>
                                             <p style="color: #135ed8;"><strong>Total Efectivo:</strong> S/ ${totalCash.toFixed(2)}</p>
                                             <p style="color: #d8133a;"><strong>Total Deuda:</strong> S/ ${totalDebt.toFixed(2)}</p> 
-                                            <p style="color: #13d81c;"><strong>Total por cobrars:</strong> S/ ${totalActiveConsumption.toFixed(2)}</p>
+                                            <p style="color: #13d81c;"><strong>Total por cobrar:</strong> S/ ${totalActiveConsumption.toFixed(2)}</p>
                                              <hr style="border: 1px solid #bdc3c7;">
                                             <p><strong>Total Ingresos:</strong> S/ ${totalIngresos.toFixed(2)}</p>
                                             <p><strong>Total Egresos:</strong> S/ ${totalEgresos.toFixed(2)}</p>
