@@ -58,13 +58,33 @@ export function Caja() {
                         </div>
                         <Button className="bg-sky-500 hover:bg-sky-300 w-full" onClick={async () => {
                             try {
-                                const { data: sessionData, error: sessionError } = await supabase
+                                // Filtrar sesiones activas
+                                const { data: activeSessions, error: sessionError } = await supabase
+                                    .from('sessions')
+                                    .select('id')
+                                    .eq('status', 'active')
+                                    .gte('start_time', startDateUtc)
+                                    .lt('start_time', endDateUtc);
+
+                                if (sessionError) throw sessionError;
+
+                                // Obtener consumos de las sesiones activas
+                                const { data: consumptionData, error: consumptionError } = await supabase
+                                    .from('consumptions')
+                                    .select('amount')
+                                    .in('session_id', activeSessions.map(session => session.id));
+
+                                if (consumptionError) throw consumptionError;
+
+                                const totalActiveConsumption = consumptionData.reduce((sum, item) => sum + item.amount, 0);
+
+                                const { data: sessionData, error: sessionDataError } = await supabase
                                     .from('sessions')
                                     .select('yape, plin, cash, debt')
                                     .gte('start_time', startDateUtc)
                                     .lt('start_time', endDateUtc);
 
-                                if (sessionError) throw sessionError;
+                                if (sessionDataError) throw sessionDataError;
 
                                 const totalYape = sessionData.reduce((sum, session) => sum + session.yape, 0);
                                 const totalPlin = sessionData.reduce((sum, session) => sum + session.plin, 0);
@@ -78,7 +98,6 @@ export function Caja() {
                                     .lt('created_at', endDateUtc);
 
                                 if (movError) throw movError;
-
 
                                 const { data: debitDetailData, error: debitDetailError } = await supabase
                                     .from('debits_details')
@@ -106,10 +125,11 @@ export function Caja() {
                                     title: '<strong>Reporte de Caja</strong>',
                                     html: `
                                         <div style="text-align: left; font-size: 1.1rem; color: #34495e;">
-                                            <p><strong>Total Yape:</strong> S/ ${totalYape.toFixed(2)}</p>
-                                            <p><strong>Total Plin:</strong> S/ ${totalPlin.toFixed(2)}</p>
-                                            <p><strong>Total Efectivo:</strong> S/ ${totalCash.toFixed(2)}</p>
-                                            <p><strong>Total Deuda:</strong> S/ ${totalDebt.toFixed(2)}</p>
+                                            <p style="color: #c613d8;"><strong>Total Yape:</strong> S/ ${totalYape.toFixed(2)}</p>
+                                            <p style="color: #13d8bd;"><strong>Total Plin:</strong> S/ ${totalPlin.toFixed(2)}</p>
+                                            <p style="color: #135ed8;"><strong>Total Efectivo:</strong> S/ ${totalCash.toFixed(2)}</p>
+                                            <p style="color: #d8133a;"><strong>Total Deuda:</strong> S/ ${totalDebt.toFixed(2)}</p> 
+                                            <p style="color: #13d81c;"><strong>Total por cobrars:</strong> S/ ${totalActiveConsumption.toFixed(2)}</p>
                                              <hr style="border: 1px solid #bdc3c7;">
                                             <p><strong>Total Ingresos:</strong> S/ ${totalIngresos.toFixed(2)}</p>
                                             <p><strong>Total Egresos:</strong> S/ ${totalEgresos.toFixed(2)}</p>
@@ -121,8 +141,9 @@ export function Caja() {
                                             <p style="font-size: 1rem; color: #34495e;"><strong>Total Yape (incluyendo pagos de deudas):</strong> S/ ${(totalYape + totalDebitDetailYape).toFixed(2)}</p>
                                             <p style="font-size: 1rem; color: #34495e;"><strong>Total Plin (incluyendo pagos de deudas):</strong> S/ ${(totalPlin + totalDebitDetailPlin).toFixed(2)}</p>
                                             <p style="font-size: 1rem; color: #34495e;" ><strong>Total Efectivo (cash + pagos + ingresos):</strong> S/ ${(totalCash + totalDebitDetailCash + totalIngresos).toFixed(2)}</p>
-                                            <p style="font-size: 1rem; color: #34495e;" ><strong>Total Venta :</strong> S/ ${(totalCash + totalYape + totalPlin + totalDebt).toFixed(2)}</p>
-                                            <p style="font-size: 1rem; color: #34495e;" ><strong>Total General :</strong> S/ ${(totalCash + totalYape + totalPlin + totalDebt + totalDebitDetailCash + totalDebitDetailYape + totalDebitDetailPlin + totalIngresos - totalEgresos).toFixed(2)}</p>
+                                            <p style="font-size: 1rem; color: #135ed8;" ><strong>Total Venta :</strong> S/ ${(totalCash + totalYape + totalPlin + totalDebt).toFixed(2)}</p>
+                                            <p style="font-size: 1rem; color:#135ed8;" ><strong>Total General :</strong> S/ ${(totalCash + totalYape + totalPlin + totalDebt + totalDebitDetailCash + totalDebitDetailYape + totalDebitDetailPlin + totalIngresos - totalEgresos).toFixed(2)}</p>
+                                         
                                         </div>
                                     `,
                                     icon: 'info',
