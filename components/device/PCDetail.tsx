@@ -10,6 +10,7 @@ import { CloseSession } from './CloseSession';
 import { Button } from '@/components/ui/button';
 import { IconSquarePlus } from '@tabler/icons-react';
 import { Addclient } from './Addclient';
+import Swal from 'sweetalert2';
 interface PC {
   id: string;
   number: string;
@@ -61,6 +62,7 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [totalAdvancePayment, setTotalAdvancePayment] = useState<number>(0);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
     if (selectedPC) {
       console.log(selectedPC);
@@ -158,32 +160,79 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
 
   const handleOpenSession = async () => {
     if (!selectedPC || !clientId) return;
-    try {
-      const { data, error } = await supabase
-        .from('sessions')
-        .insert({
-          client_id: clientId,
-          pc_number: selectedPC.number,
-          start_time: new Date().toISOString(),
-          pc_id: selectedPC.id,
-          status: 'active',
-        })
-        .select()
-        .single();
 
-      if (error) {
-        console.error('Error opening session:', error);
-      } else {
-        setStatus('occupied');
-        onUpdatePCStatus(selectedPC.id, 'occupied');
-        setCurrentSession(data);
-        /* alert(`Session opened for client ${clientId} on PC ${selectedPC.number}`); */
-        fetchConsumptions(data.id);
-      }
-    } catch (error) {
-      console.error('Error opening session:', error);
+    // Verifica si ya hay una sesión activa
+    if (currentSession) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Ya hay una sesión activa',
+        text: 'No se puede abrir una nueva sesión. Avise al administrador si ve este problema.',
+        confirmButtonText: 'Aceptar'
+      })
+        return; // Salir si ya hay una sesión activa
     }
 
+    setIsLoading(true); // Activar estado de carga
+
+    try {
+        // Verificar en la base de datos si ya existe una sesión activa para este PC
+        const { data: existingSession, error: sessionError } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('pc_id', selectedPC.id)
+        .eq('status', 'active')
+        .maybeSingle();
+        if (sessionError) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error al verificar la sesión',
+            text: 'No se puede abrir una nueva sesión. Avise al administrador si ve este problema. '+sessionError.message+selectedPC.id,
+            confirmButtonText: 'Aceptar'
+          })
+            console.error('Error checking existing session:', sessionError.message);
+            return;
+        }
+
+        if (existingSession) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Ya hay una sesión activa',
+                text: 'No se puede abrir una nueva sesión. Avise al administrador si ve este problema.',
+                confirmButtonText: 'Aceptar'
+            })
+            return; // Salir si ya hay una sesión activa
+        }
+
+        const { data, error } = await supabase
+            .from('sessions')
+            .insert({
+                client_id: clientId,
+                pc_number: selectedPC.number,
+                start_time: new Date().toISOString(),
+                pc_id: selectedPC.id,
+                status: 'active',
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error opening session:', error);
+        } else {
+            setStatus('occupied');
+            onUpdatePCStatus(selectedPC.id, 'occupied');
+            setCurrentSession(data);
+            fetchConsumptions(data.id);
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al abrir la sesión',
+            text: 'No se puede abrir una nueva sesión. Avise al administrador si ve este problema.' + error,
+            confirmButtonText: 'Aceptar'
+        })
+    } finally {
+        setIsLoading(false); // Desactivar estado de carga
+    }
   };
 
   const handleCloseSession = async () => {
@@ -371,10 +420,10 @@ const PCDetail: React.FC<PCDetailProps> = ({ selectedPC, onUpdatePCStatus }) => 
               </div>
               <button
                 onClick={handleOpenSession}
-                disabled={!clientId}
-                className={`mt-4 w-full py-2 px-4 text-white rounded-md ${clientId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 cursor-not-allowed'}`}
+                disabled={!clientId || isLoading} // Deshabilitar si está cargando
+                className={`mt-4 w-full py-2 px-4 text-white rounded-md ${clientId && !isLoading ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 cursor-not-allowed'}`}
               >
-                Aceptar
+                {isLoading ? 'Cargando...' : 'Aceptar'} {/* Cambiar texto mientras carga */}
               </button>
             </>
           ) : (
