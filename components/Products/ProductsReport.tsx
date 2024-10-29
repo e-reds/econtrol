@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
+import { IconRotate2 } from '@tabler/icons-react';
 interface Product {
     id: string;
     name: string;
@@ -19,6 +19,7 @@ interface Consumption {
     product_id: string;
     quantity: number;
     created_at: string;
+    session_id: string;
     // Añade otros campos según sea necesario
 }
 
@@ -37,6 +38,10 @@ export default function ProductsReport() {
     const [selectedProductId, setSelectedProductId] = useState<string>('');
     const [consumptions, setConsumptions] = useState<Consumption[]>([]);
     const [productConsumptions, setProductConsumptions] = useState<ProductConsumption[]>([]);
+    const [clientNames, setClientNames] = useState<{ [key: string]: string }>({}); // Estado para almacenar nombres de clientes
+    const [pcNames, setPcName] = useState<{ [key: string]: string }>({});
+    const [loadingClientNames, setLoadingClientNames] = useState<boolean>(false);
+    const [sessionInfoMap, setSessionInfoMap] = useState<{ [key: string]: { name: string, pc_number: string } }>({});
 
     const TIME_ZONE_OFFSET = -5; // Perú está en UTC-5
 
@@ -94,9 +99,33 @@ export default function ProductsReport() {
             } else {
                 console.log(data);
                 setConsumptions(data || []);
+
+                // Obtener los IDs de las sesiones
+                const sessionIds = data.map(consumption => consumption.session_id);
+                const uniqueSessionIds = [...new Set(sessionIds)];
+
+                // Cargar nombres de clientes
+                setLoadingClientNames(true); // Iniciar carga
+                /* const clientNamesMap: { [key: string]: string } = {};
+                const pcNameMap: { [key: string]: string } = {}; */
+                const sessionInfoMapTemp: { [key: string]: { name: string, pc_number: string } } = {};
+                for (const sessionId of uniqueSessionIds) {
+                    const clientInfo = await getClientNameBySessionId(sessionId);
+                    sessionInfoMapTemp[sessionId] = {
+                        name: clientInfo.name,
+                        pc_number: clientInfo.pc_number
+                    };
+                }
+
+                setSessionInfoMap(sessionInfoMapTemp);
+                /* setClientNames(clientNamesMap); */
+                /*  setPcName(pcNameMap); */
+                // Almacenar los nombres de los clientes en el estado
+                setLoadingClientNames(false); // Finalizar carga
             }
         } catch (error) {
             console.error('Error:', error);
+            setLoadingClientNames(false); // Asegurarse de finalizar carga en caso de error
         }
     };
 
@@ -135,94 +164,150 @@ export default function ProductsReport() {
         }
     };
 
+    const getClientNameBySessionId = async (sessionId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('sessions')
+                .select('client_id, pc_number') // Include pc_number here
+                .eq('id', sessionId)
+                .single();
+
+            if (error) {
+                console.error('Error fetching session:', error);
+                return { name: 'Desconocido', pc_number: 'N/A' }; // Default values if there's an error
+            }
+
+            const clientId = data.client_id;
+            const pcNumber = data.pc_number;
+
+            const { data: clientData, error: clientError } = await supabase
+                .from('clients')
+                .select('name')
+                .eq('id', clientId)
+                .single();
+
+            if (clientError) {
+                console.error('Error fetching client:', clientError);
+                return { name: 'Desconocido', pc_number: pcNumber || 'N/A' }; // Return pc_number even if there's an error with client
+            }
+
+            return { name: clientData.name, pc_number: pcNumber }; // Return both name and pc_number
+        } catch (error) {
+            console.error('Error:', error);
+            return { name: 'Desconocido', pc_number: 'N/A' }; // Default values in case of a broader error
+        }
+    };
+
+
     return (
         <div>
             <h1>Reporte de Productos</h1>
-            <div>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <div className='flex flex-row justify-between w-full gap-4'>
+                <input className='bg-gray-900 rounded-lg px-3 py-1 w-full mb-1' type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                <input className='bg-gray-900 rounded-lg px-3 py-1 w-full mb-1' type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
-            <div className="relative">
-                <Button
-                    onClick={() => setOpen(!open)}
-                    variant={"ghost"}
-                    className="w-full justify-between bg-gray-900 text-white hover:bg-gray-900/60"
-                >
-                    {selectedProductId
-                        ? products.find((product) => product.id === selectedProductId)?.name
-                        : "Buscar Producto..."}
-                    <span className="ml-2">▼</span>
-                </Button>
-                {open && (
-                    <div className="absolute z-10 w-full mt-1 bg-gray-900 border border-gray-900 rounded-md shadow-lg p-2">
-                        <Input
-                            type="text"
-                            placeholder="Buscar producto..."
-                            value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
-                            className="w-full p-2"
-                        />
+            <div className='flex flex-row justify-between w-full gap-4'>
+                <div className='w-1/2 bg-slate-900/50 p-3 border drop-shadow-lg rounded-lg'>
+                    <div className="relative">
+                        <Button
+                            onClick={() => setOpen(!open)}
+                            variant={"ghost"}
+                            className="w-full justify-between bg-sky-900 text-white hover:bg-gray-900/60"
+                        >
+                            {selectedProductId
+                                ? products.find((product) => product.id === selectedProductId)?.name
+                                : "Buscar Producto..."}
+                            <span className="ml-2">▼ Filtrar productos</span>
+                        </Button>
+                        {open && (
+                            <div className="absolute z-10 w-full mt-1 bg-gray-900 border border-gray-900 rounded-md shadow-lg p-2">
+                                <Input
+                                    type="text"
+                                    placeholder="Buscar producto..."
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    className="w-full p-2 bg-sky-900/50 text-white border border-gray-900 rounded-md"
+                                />
 
-                        {filteredProducts.length > 0 ? (
-                            <ScrollArea className="h-60 mt-3">
-                                <div>
-                                    {filteredProducts.map((product) => (
-                                        <div
-                                            key={product.id}
-                                            onClick={() => {
-                                                setSelectedProductId(product.name);
-                                                setOpen(false);
-                                                setSearchQuery(''); // Limpiar la búsqueda después de seleccionar
-                                                console.log('Producto seleccionado:', product.name); // Log del ID seleccionado
-                                            }}
-                                            className="p-2 hover:bg-gray-800 hover:text-white cursor-pointer transition-colors duration-200 rounded-md"
-                                        >
-                                            {product.name}
+                                {filteredProducts.length > 0 ? (
+                                    <ScrollArea className="h-60 mt-3">
+                                        <div>
+                                            {filteredProducts.map((product) => (
+                                                <div
+                                                    key={product.id}
+                                                    onClick={() => {
+                                                        setSelectedProductId(product.name);
+                                                        setOpen(false);
+                                                        setSearchQuery(''); // Limpiar la búsqueda después de seleccionar
+                                                        console.log('Producto seleccionado:', product.name); // Log del ID seleccionado
+                                                    }}
+                                                    className="p-2 hover:bg-gray-800 hover:text-white cursor-pointer transition-colors duration-200 rounded-md"
+                                                >
+                                                    {product.name}
+                                                </div>
+
+                                            ))}
                                         </div>
+                                    </ScrollArea>
+                                ) : (
+                                    <div className="p-2 text-gray-500">No hay productos que coincidan con la búsqueda.</div>
+                                )}
 
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                        ) : (
-                            <div className="p-2 text-gray-500">No hay productos que coincidan con la búsqueda.</div>
+                            </div>
                         )}
-
                     </div>
-                )}
-            </div>
 
-            {selectedProductId && (
-                <>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>ID</TableHead>
-                                <TableHead>Cantidad</TableHead>
-                                <TableHead>Fecha</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                    </Table>
-                    <h2 className="text-sm font-semibold bg-gray-800 text-white p-2 rounded-md">Producto <span className="text-sky-400">{selectedProductId}</span> cantidad: <span className="text-sky-400">{consumptions.length}</span></h2>
-                    <ScrollArea className="h-60 mt-3">
-                        <div className="mt-4">
-
+                    {selectedProductId && (
+                        <>
                             <Table>
-
-                                <TableBody>
-                                    {consumptions.map((consumption) => (
-                                        <TableRow key={consumption.id}>
-                                            <TableCell>{consumption.id}</TableCell>
-                                            <TableCell>{consumption.quantity}</TableCell>
-                                            <TableCell>{new Date(consumption.created_at).toLocaleString()}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
+                                <TableHeader>
+                                    <TableRow>
+                                        {/*  <TableHead>ID</TableHead> */}
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Cantidad</TableHead>
+                                        <TableHead>Cliente</TableHead>
+                                        <TableHead>PC</TableHead>
+                                    </TableRow>
+                                </TableHeader>
                             </Table>
-                        </div>
-                    </ScrollArea></>
-            )}
-            
-            <>
+                            <h2 className="text-sm font-semibold bg-gray-800 text-white p-2 rounded-md">Producto <span className="text-sky-400">{selectedProductId}</span> cantidad: <span className="text-sky-400">{consumptions.reduce((total, consumption) => total + consumption.quantity, 0)}</span></h2>
+                            <ScrollArea className="h-[60vh] mt-3">
+                                <div className="mt-4">
+
+                                    <Table>
+
+                                        <TableBody>
+                                            {consumptions.map((consumption) => (
+                                                <TableRow key={consumption.id}>
+                                                    {/*  <TableCell>{consumption.id}</TableCell> */}
+                                                    <TableCell>{consumption.quantity}</TableCell>
+                                                    <TableCell>{new Date(consumption.created_at).toLocaleString()}</TableCell>
+                                                    <TableCell>
+                                                        {loadingClientNames ? (
+                                                            <span className="loader"><IconRotate2 stroke={2} className='animate-spin' /></span>
+                                                        ) : (
+                                                            sessionInfoMap[consumption.session_id]?.name || 'Desconocido'
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {loadingClientNames ? (
+                                                            <span className="loader"><IconRotate2 stroke={2} className='animate-spin' /></span>
+                                                        ) : (
+                                                            sessionInfoMap[consumption.session_id]?.pc_number || 'N/A'
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </ScrollArea></>
+                    )}
+
+
+                </div>
+                <div className='w-1/2 bg-slate-900/50 p-3 border drop-shadow-lg rounded-lg'>
+                    <div className='bg-gray-900 w-full p-2 text-center text-white rounded-lg'>Productos vendidos</div>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -233,7 +318,7 @@ export default function ProductsReport() {
                         </TableHeader>
                     </Table>
                     <h2 className="text-sm font-semibold bg-gray-800 text-white p-2 rounded-md">Total de Productos: <span className="text-sky-400">{productConsumptions.length}</span></h2>
-                    <ScrollArea className="h-60 mt-3">
+                    <ScrollArea className="h-[60vh] mt-3">
                         <div className="mt-4">
 
                             <Table>
@@ -242,13 +327,15 @@ export default function ProductsReport() {
                                     {productConsumptions.sort((a, b) => b.total_quantity - a.total_quantity).map((productConsumption) => (
                                         <TableRow key={productConsumption.product_name}>
                                             <TableCell>{productConsumption.product_name}</TableCell>
-                                            <TableCell>{productConsumption.total_quantity}</TableCell>                                           
+                                            <TableCell>{productConsumption.total_quantity}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
                         </div>
-                    </ScrollArea></>
+                    </ScrollArea>
+                </div>
+            </div>
         </div>
     )
 }

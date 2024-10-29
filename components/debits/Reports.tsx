@@ -46,13 +46,13 @@ export default function Reports() {
     // Fetch debits
     const fetchDebits = async () => {
 
-       // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
-    const startDatePeru = `${startDate}T06:00:00-05:00`;
-    const endDatePeru = `${endDate}T06:00:00-05:00`;
+        // Crear la fecha inicial y final en la zona horaria de Perú (UTC-5)
+        const startDatePeru = `${startDate}T06:00:00-05:00`;
+        const endDatePeru = `${endDate}T06:00:00-05:00`;
 
-    // Convertir a UTC usando date-fns-tz
-    const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
-    const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+        // Convertir a UTC usando date-fns-tz
+        const startDateUtc = formatInTimeZone(startDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
+        const endDateUtc = formatInTimeZone(endDatePeru, 'America/Lima', 'yyyy-MM-dd HH:mm:ssXXX')
         try {
             let { data, error } = await supabase
                 .from('debits')
@@ -66,6 +66,7 @@ export default function Reports() {
                 console.error(error);
             } else {
                 setDebits(data || []);
+                console.log(data);
             }
         } catch (error) {
             console.error('Error fetching debits:', error);
@@ -152,7 +153,7 @@ export default function Reports() {
                                         <TableCell className="py-3 px-4">{format(new Date(debit.created_at), 'yyyy-MM-dd')}</TableCell>
                                         <TableCell className="py-3 px-4">{getClientName(debit.client_id)}</TableCell>
                                         <TableCell className="py-3 px-4">{debit.description}</TableCell>
-                                        <TableCell className="py-3 px-4">S/ {debit.amount.toFixed(2)}</TableCell>
+                                        <TableCell className="py-3 px-4">S/ {debit.amount?.toFixed(2)}</TableCell>
                                         <TableCell className="py-3 px-4">
                                             {debit.status ? 'Pagado' : 'Debe'}
                                         </TableCell>

@@ -155,6 +155,7 @@ export default function SessionReport() {
         .lt('start_time', endDateUtc)
         .eq('status', 'inactive');
       if (error) throw error;
+      console.log(data);
       return data || [];
     } catch (error) {
       console.error('Error fetching sessions:', error);

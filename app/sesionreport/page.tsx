@@ -1,6 +1,7 @@
 import { Hero } from "@/components/Hero";
 import ProductsReport from "@/components/Products/ProductsReport";
 import SessionReport from "@/components/sesiones/SessionReport";
+/* import SessionsChart from "@/components/sesiones/SessionsChart"; */
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/utils/supabase/server";
 
